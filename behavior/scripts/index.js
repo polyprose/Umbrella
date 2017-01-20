@@ -51,6 +51,40 @@ exports.handle = function handle(client) {
       client.done()
     }
   })
+  
+  const collectCity = client.createStep({
+    satisfied() {
+      return Boolean(client.getConversationState().weatherCity)
+    },
+
+    extractInfo() {
+      const city = client.getFirstEntityWithRole(client.getMessagePart(), 'city')
+
+      if (city) {
+        client.updateConversationState({
+          weatherCity: city,
+        })
+
+        console.log('User wants the weather in:', city.value)
+      }
+    },
+
+    prompt() {
+      client.addResponse('prompt/weather_city')
+      client.done()
+    },
+  })
+
+  const provideWeather = client.createStep({
+    satisfied() {
+      return false
+    },
+
+    prompt() {
+      // Need to provide weather
+      client.done()
+    },
+  })
 
   client.runFlow({
     classifications: {
@@ -65,4 +99,22 @@ exports.handle = function handle(client) {
       end: [untrained]
     }
   })
+  
+  client.runFlow({
+  classifications: {},
+  streams: {
+    main: 'hi',
+    hi: [sayHello],
+    getWeather: [collectCity, provideWeather],
+  }
+  
+  client.runFlow({
+  classifications: {},
+  streams: {
+    main: 'getWeather',
+    hi: [sayHello],
+    getWeather: [collectCity, provideWeather],
+  }
+})
+})
 }
